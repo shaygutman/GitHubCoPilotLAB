@@ -133,6 +133,10 @@ python -m pytest -q
 The tests use local data and the saved fixtures only, so they pass without
 internet access.
 
+GitHub Actions runs `python -m pytest` with Python 3.12 after installing
+`requirements.txt`. The `tests` job runs only for pull requests targeting `main`
+when opened, reopened, or updated with new commits; pushes alone do not trigger it.
+
 ## 9. Environment variables
 
 | Variable | Default | Meaning |
