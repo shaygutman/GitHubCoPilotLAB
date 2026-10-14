@@ -31,10 +31,21 @@ def _search(endpoint: str, field: str, query: str) -> list[Record]:
 
 def _search_fixture(endpoint: str, field: str, query: str) -> list[Record]:
     """Filter a saved openFDA response the same way a live search would."""
-    path = settings.fixtures_dir / f"{endpoint}.json"
-    records = json.loads(path.read_text(encoding="utf-8"))["results"]
+    records = load_fixture_records(endpoint)
     words = query.lower().split()
     return [r for r in records if all(w in str(r.get(field, "")).lower() for w in words)]
+
+
+def load_fixture_records(endpoint: str) -> list[Record]:
+    """Load and validate the records in a saved openFDA response."""
+    path = settings.fixtures_dir / f"{endpoint}.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Fixture response must be an object.")
+    records = payload.get("results")
+    if not isinstance(records, list) or not all(isinstance(r, dict) for r in records):
+        raise ValueError("Fixture results must be a list of objects.")
+    return records
 
 
 def _search_live(endpoint: str, field: str, query: str) -> list[Record]:
