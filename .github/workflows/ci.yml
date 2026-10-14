@@ -1,15 +1,15 @@
-name: Tests
+name: CI
 
-# Runs ONLY on pull requests: when opened, updated (new commits pushed), or reopened.
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches: [main]
+    types: [opened]
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -22,7 +22,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest
+        run: python -m pytest
