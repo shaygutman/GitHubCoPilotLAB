@@ -106,11 +106,23 @@ curl "http://127.0.0.1:8000/recalls?query=defibrillator&since=2023-01-01&limit=5
 | --- | --- |
 | `GET /version` | `{"version": "1.1.0"}` |
 | `GET /health` | `{"status": "ok", "mode": "fixture"}` |
+| `GET /health/detailed` | Overall status, data mode and per-component status/count for products, updates and the 510k, recall and classification fixtures |
 | `GET /products` | All products from `data/portfolio.yaml` |
 | `GET /products/{id}` | One product, or 404 |
 | `GET /updates?jurisdiction=&tag=&since=YYYY-MM-DD` | Regulatory updates from `data/updates/*.md`, newest first, filtered |
 | `GET /clearances?query=&limit=10` | 510(k) clearances whose device name contains every word in `query` |
 | `GET /recalls?query=&since=YYYY-MM-DD&limit=10` | Recalls whose product description contains every word in `query`, initiated on or after `since` |
+
+The `since` filter includes records dated exactly on the requested date.
+Update front-matter dates use year-month-day order (`YYYY-MM-DD` or `YYYYMMDD`),
+never year-day-month. An unreadable update date produces HTTP 500 when filtered;
+an invalid `since` query parameter produces HTTP 422.
+
+The detailed health check returns HTTP 200 when all local datasets load successfully
+and contain records, or HTTP 503 with an error detail for each failing component.
+All components are checked even if one fails. It never calls openFDA, including
+in `live` mode; it checks local fixtures rather than external service availability.
+The existing `/health` endpoint remains a lightweight liveness check.
 
 ## 8. Run the tests
 

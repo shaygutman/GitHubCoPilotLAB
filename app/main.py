@@ -3,13 +3,20 @@
 Run locally with:  python -m uvicorn app.main:app --reload
 """
 
+import logging
+from collections.abc import Callable, Sized
 from datetime import date, datetime
+from functools import partial
 
+import yaml
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 from app import openfda, portfolio
 from app.config import settings
 from app.models import Clearance, Product, Recall, Update
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Regulatory Radar",
@@ -27,6 +34,45 @@ def version() -> dict[str, str]:
 def health() -> dict:
     """Liveness check that also tells you which data mode is active."""
     return {"status": "ok", "mode": settings.openfda_mode}
+
+
+@app.get("/health/detailed")
+def health_detailed() -> JSONResponse:
+    """Check local data and fixtures without contacting external services."""
+    checks = {
+        "products": _check_local_data(portfolio.load_products),
+        "updates": _check_local_data(_load_health_updates),
+    }
+    for endpoint in ("510k", "recall", "classification"):
+        checks[f"fixture_{endpoint}"] = _check_local_data(
+            partial(openfda.load_fixture_records, endpoint)
+        )
+    healthy = all(check["status"] == "ok" for check in checks.values())
+    return JSONResponse(
+        status_code=200 if healthy else 503,
+        content={
+            "status": "ok" if healthy else "error",
+            "mode": settings.openfda_mode,
+            "checks": checks,
+        },
+    )
+
+
+def _load_health_updates() -> list[Update]:
+    if not settings.updates_dir.is_dir():
+        raise FileNotFoundError("Updates directory is unavailable.")
+    return portfolio.load_updates()
+
+
+def _check_local_data(loader: Callable[[], Sized]) -> dict[str, str | int]:
+    try:
+        count = len(loader())
+        if count == 0:
+            raise ValueError("No records found.")
+    except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
+        logger.exception("Local health check failed for %s", loader)
+        return {"status": "error", "detail": "Local data is missing, unreadable, invalid or empty."}
+    return {"status": "ok", "count": count}
 
 
 @app.get("/products")
@@ -95,9 +141,7 @@ def _recall_initiated_on_or_after(record: dict, since: date) -> bool:
 def _parse_update_date(value: str) -> date:
     """Front-matter dates are ISO style; accept them with or without dashes."""
     digits = value.replace("-", "")
-    for fmt in ("%Y%d%m", "%Y%m%d"):
-        try:
-            return datetime.strptime(digits, fmt).date()
-        except ValueError:
-            continue
-    raise HTTPException(status_code=500, detail=f"Unreadable update date: {value}")
+    try:
+        return datetime.strptime(digits, "%Y%m%d").date()
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=f"Unreadable update date: {value}") from exc
