@@ -104,6 +104,7 @@ curl "http://127.0.0.1:8000/recalls?query=defibrillator&since=2023-01-01&limit=5
 
 | Endpoint | What it returns |
 | --- | --- |
+| `GET /version` | `{"version": "1.1.0"}` |
 | `GET /health` | `{"status": "ok", "mode": "fixture"}` |
 | `GET /products` | All products from `data/portfolio.yaml` |
 | `GET /products/{id}` | One product, or 404 |

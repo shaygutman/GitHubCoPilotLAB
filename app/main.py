@@ -18,6 +18,11 @@ app = FastAPI(
 )
 
 
+@app.get("/version")
+def version() -> dict[str, str]:
+    return {"version": "1.1.0"}
+
+
 @app.get("/health")
 def health() -> dict:
     """Liveness check that also tells you which data mode is active."""
