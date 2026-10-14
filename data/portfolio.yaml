@@ -24,7 +24,6 @@ products:
       - DTB  # Permanent Pacemaker Electrode (leads)
       - KRG  # Programmer, Pacemaker
       - OSR  # Pacemaker/ICD/CRT Non-Implanted Components
-      - DTBB
 
   - id: guardian-icd
     name: Acme Guardian ICD
